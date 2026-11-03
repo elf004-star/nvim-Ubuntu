@@ -1,23 +1,11 @@
 -- ==========================================
--- 1. 剪贴板显式绑定（针对 SSH 远程到 Ubuntu 的精准适配）
+-- 1. 剪贴板：本地用系统剪贴板（xclip），SSH 时用 OSC 52 同步到本地
 -- ==========================================
--- 使用 which lemonade 查出来的绝对路径
-local lemonade_path = "/home/elf004/go/bin/lemonade"
-
-vim.g.clipboard = {
-    name = "lemonade",
-    copy = {
-        -- 强制将复制内容发往 127.0.0.1（即 SSH 反向隧道入口）
-        ["+"] = lemonade_path .. " --host=127.0.0.1 copy",
-        ["*"] = lemonade_path .. " --host=127.0.0.1 copy",
-    },
-    paste = {
-        -- 强制从 127.0.0.1（经由 SSH 隧道从你本地电脑）获取剪贴板
-        ["+"] = lemonade_path .. " --host=127.0.0.1 paste",
-        ["*"] = lemonade_path .. " --host=127.0.0.1 paste",
-    },
-    cache_enabled = false,
-}
+-- 本地 GNOME Terminal (VTE) 不支持 OSC 52，强制启用会导致 y 复制不到系统剪贴板
+-- 只有 SSH 会话才需要 OSC 52 把文本经终端同步回本地
+if vim.env.SSH_CONNECTION or vim.env.SSH_TTY then
+    vim.g.clipboard = "osc52"
+end
 
 -- ==========================================
 -- 2. 加载插件管理器与基础设置
@@ -28,8 +16,6 @@ require("config.lazy")
 vim.api.nvim_create_autocmd("User", {
     pattern = "VeryLazy",
     callback = function()
-        vim.schedule(function()
-            vim.o.clipboard = "unnamedplus"
-        end)
+        vim.o.clipboard = "unnamedplus"
     end,
 })
